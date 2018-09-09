@@ -21,6 +21,9 @@ public class ClientApplication {
         String names = scanner.nextLine();
         System.out.println(names);
 
+        printWriter.print("send Maciej Ala ma kota a kot ma Ale");
+        printWriter.flush();
+
         socket.close();
     }
 }
