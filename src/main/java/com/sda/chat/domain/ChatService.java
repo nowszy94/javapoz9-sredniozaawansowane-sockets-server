@@ -1,5 +1,7 @@
 package com.sda.chat.domain;
 
+import com.sda.chat.api.InvalidChatUserException;
+import com.sda.chat.api.InvalidCommandException;
 import com.sda.chat.domain.model.ChatCommand;
 import com.sda.chat.domain.model.ChatUser;
 import com.sda.chat.domain.port.UsersRepository;
@@ -13,6 +15,25 @@ public class ChatService {
 
     public ChatService(UsersRepository usersRepository) {
         this.usersRepository = usersRepository;
+    }
+
+    public ChatUser authenticate(String message, String address) {
+        String[] splitMessage = message.split(" ");
+        if (!"hello".equals(splitMessage[0])) {
+            throw new InvalidCommandException("Invalid command: " + splitMessage[0]);
+        }
+        String name = splitMessage[1];
+
+        ChatUser chatUser = usersRepository.find(address);
+        if (chatUser == null) {
+            return usersRepository.addUser(new ChatUser(name, address));
+        } else {
+            if (chatUser.getName().equals(name)) {
+                return chatUser;
+            } else {
+                throw new InvalidChatUserException("Invalid name: " + name);
+            }
+        }
     }
 
     public String handleMessage(String message, ChatUser chatUser) {

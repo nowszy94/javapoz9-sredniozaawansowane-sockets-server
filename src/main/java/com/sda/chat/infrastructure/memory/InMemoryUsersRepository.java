@@ -4,6 +4,7 @@ import com.sda.chat.domain.model.ChatUser;
 import com.sda.chat.domain.port.UsersRepository;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class InMemoryUsersRepository implements UsersRepository {
@@ -20,11 +21,16 @@ public class InMemoryUsersRepository implements UsersRepository {
 
     @Override
     public ChatUser find(String address) {
+        for (ChatUser user : users) {
+            if (address.equals(user.getAddress())) {
+                return user;
+            }
+        }
         return null;
     }
 
     @Override
     public List<ChatUser> findAll() {
-        return null;
+        return new ArrayList<>(users);
     }
 }

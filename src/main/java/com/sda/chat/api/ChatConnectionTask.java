@@ -7,6 +7,7 @@ import com.sda.chat.domain.port.UsersRepository;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public class ChatConnectionTask implements Runnable {
@@ -14,30 +15,38 @@ public class ChatConnectionTask implements Runnable {
     private Socket socket;
     private Scanner in;
     private PrintWriter out;
-    private UsersRepository usersRepository;
     private ChatService chatService;
 
-    public ChatConnectionTask(Socket socket, UsersRepository usersRepository, ChatService chatService) throws IOException {
+    public ChatConnectionTask(Socket socket, ChatService chatService) throws IOException {
         this.socket = socket;
         this.in = new Scanner(socket.getInputStream());
         this.out = new PrintWriter(socket.getOutputStream());
-        this.usersRepository = usersRepository;
         this.chatService = chatService;
     }
 
     @Override
     public void run() {
+        ChatUser user = null;
         try {
-            ChatUser user = authenticate();
+            System.out.println("Started new thread");
+            user = authenticate();
             boolean flag = true;
             while (flag) {
                 String message = in.nextLine();
+                System.out.println("Received message from " + user.getName() + ": " + message);
                 String response = chatService.handleMessage(message, user);
+                System.out.println("Sending response: " + response);
                 out.println(response);
                 out.flush();
             }
+        } catch (NoSuchElementException e){
+            if (user != null) {
+                System.out.println(user.getName() + " disconnected");
+            } else {
+                System.out.println("Someone disconnected");
+            }
         } catch (Exception e) {
-            //do nothing
+            e.printStackTrace();
         } finally {
             try {
                 in.close();
@@ -51,22 +60,7 @@ public class ChatConnectionTask implements Runnable {
 
     private ChatUser authenticate() {
         String address = socket.getInetAddress().getHostAddress();
-        String possibleName = in.nextLine();
-        String[] splitMessage = possibleName.split(" ");
-        if (!"hello".equals(splitMessage[0])) {
-            throw new InvalidCommandException("Invalid command: " + splitMessage[0]);
-        }
-        String name = splitMessage[1];
-
-        ChatUser chatUser = usersRepository.find(address);
-        if (chatUser == null) {
-            return usersRepository.addUser(new ChatUser(name, address));
-        } else {
-            if (chatUser.getName().equals(name)) {
-                return chatUser;
-            } else {
-                throw new InvalidChatUserException("Invalid name: " + name);
-            }
-        }
+        String message = in.nextLine();
+        return chatService.authenticate(message, address);
     }
 }
